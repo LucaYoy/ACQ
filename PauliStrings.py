@@ -1,12 +1,8 @@
-# %%
 from itertools import product
 import numpy as np
 import scipy.sparse as sp
 from qiskit.quantum_info import Pauli
 
-
-
-# %%
 def general(H_trot,D,n_qubits,sparse=True,PDstr=False):
     """
     This function generates the 4^D Pauli strings needed to compute
@@ -45,7 +41,6 @@ def general(H_trot,D,n_qubits,sparse=True,PDstr=False):
         return num_paulis,PD_str,fail
     return num_paulis,PD,fail
 
-# %%
 def real(H_trot,D,n_qubits,sparse=True,PDstr=False):
     """
     This function generates the 2^D*(2^D-1)/2 Pauli strings needed to compute
@@ -89,143 +84,3 @@ def real(H_trot,D,n_qubits,sparse=True,PDstr=False):
     if PDstr:
         return num_paulis,PD_str,fail
     return num_paulis,PD,fail
-
-
-def general_2body(n_qubits,sparse=True,PDstr=False):
-    """
-    This function computes all two-body Pauli strings 
-    for a general Hamiltonian (non-real)  without 
-    redundant string
-    """
-    PD = [] 
-    PD_str = [] 
-    i=0
-    #All identities only once
-    s=["I"]*n_qubits
-    pstr=''.join(s)
-    PD.append(sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse)))
-    PD_str.append(pstr)
-    i=i+1
-    #Loop for all the qubits and single gates
-    for k in range(n_qubits):
-        s=["I"]*n_qubits
-        for qi in product('XYZ',repeat=1):
-            s[k]=qi[0]
-            pstr=''.join(s)
-            #print(k,j,pstr)
-            PD.append(sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse)))
-            PD_str.append(pstr)
-            i=i+1
-        #Loop for pairs of qubits
-        for j in range(k+1,n_qubits):
-            s=["I"]*n_qubits
-            for qi in product('XYZ',repeat=2):
-                s[k]=qi[0]
-                s[j]=qi[1]
-                pstr=''.join(s)
-                #print(k,j,pstr)
-                PD.append(sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse)))
-                PD_str.append(pstr)
-                i=i+1
-    num_paulis=len(PD_str)
-    print("The number of Paulis is ",num_paulis)
-    if PDstr:
-        return num_paulis,PD_str
-    return num_paulis,PD
-
-
-def general_DT_2body(H_trot,L2,n_qubits,sparse=True,PDstr=False):
-    """
-    This function computes all T-local Pauli strings plus
-    two-body Pauli strings between T-local qubits and outside qubits
-    for a general Hamiltonian (non-real) without 
-    redundant string. This function assumes even T and n_qubits
-    """
-    T=H_trot.T
-    if L2>int((n_qubits-T)/2):
-        L2=int((n_qubits-T)/2)
-        print("Your L2 was bigger than allowed (N-T)/2, set it to",L2)
-    numT_paulis=int(4**T)
-    num2b_paulis=18*L2*T
-    num_paulis=numT_paulis+num2b_paulis
-    PD = [[0 for i in range(num_paulis)] for j in range(H_trot.Nk)]
-    PD_str = [['' for i in range(num_paulis)] for j in range(H_trot.Nk)]
-    for j in range(H_trot.Nk):
-        i=0
-        #Loop for all T-local Pauli strings
-        for qi in product('IXYZ',repeat=T):
-            s=["I"]*n_qubits
-            for k in range(T):
-                ind=(H_trot.indk[j]+k)%n_qubits
-                s[ind]=qi[k]
-            pstr=''.join(s)
-            PD[j][i]=sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse))
-            PD_str[j][i]=pstr
-            i=i+1
-        #Loop for all 2-body Pauli strings to the Left of H_trot domain
-        #print('Pauli strings 2body from the left')
-        for k in range(T):
-            ind1=(H_trot.indk[j]+k)%n_qubits
-            for l in range(L2):
-                ind2=(H_trot.indk[j]-l-1)%n_qubits
-                for qi in product('XYZ',repeat=2):
-                    s=["I"]*n_qubits
-                    s[ind1]=qi[0]
-                    s[ind2]=qi[1]
-                    pstr=''.join(s)
-                    PD[j][i]=sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse))
-                    PD_str[j][i]=pstr
-                    i=i+1
-        #print('Pauli strings 2body from the right')
-        for k in range(T):
-            ind1=(H_trot.indk[j]+k)%n_qubits
-            for l in range(L2):
-                ind2=(H_trot.indk[j]+T+l)%n_qubits
-                for qi in product('XYZ',repeat=2):
-                    s=["I"]*n_qubits
-                    s[ind1]=qi[0]
-                    s[ind2]=qi[1]
-                    pstr=''.join(s)
-                    PD[j][i]=sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse))
-                    PD_str[j][i]=pstr
-                    i=i+1
-    unique_elements = set(elem for sublist in PD_str for elem in sublist)
-    print("The number of Paulis per Hamiltonian piece are",num_paulis)
-    print("The number of unique Pauli strings is",len(unique_elements),'from a total of',num_paulis*H_trot.Nk)
-    if PDstr:
-        return num_paulis,PD_str
-    return num_paulis,PD
-
-
-
-
-#def general_2body(n_qubits,sparse=True,PDstr=False):
-#    """
-#    This function computes all two-body Pauli strings 
-#    for a general Hamiltonian (non-real). This function generates
-#    redundant Pauli Strings, can be optimized. 
-#    """
-#    num_paulis=int(16*n_qubits*(n_qubits-1)/2)
-#    print("The number of Paulis is ",num_paulis)
-#    PD = [] 
-#    PD_str = [] 
-#    i=0
-#    for k in range(n_qubits):
-#        for j in range(k+1,n_qubits):
-#            s=["I"]*n_qubits
-#            for qi in product('IXYZ',repeat=2):
-#                s[k]=qi[0]
-#                s[j]=qi[1]
-#                pstr=''.join(s)
-#                #print(k,j,pstr)
-#                PD.append(sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse)))
-#                PD_str.append(pstr)
-#                i=i+1
-#    print("Number of loops",i)
-#    
-#    unique_elements = set(PD_str)
-#    print("The number of unique Pauli strings is",len(unique_elements),"from a total of",len(PD_str))
-#    if PDstr:
-#        return num_paulis,PD_str
-#    return num_paulis,PD
-# %%
