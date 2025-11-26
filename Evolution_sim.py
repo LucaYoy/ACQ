@@ -14,18 +14,6 @@ def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=True,sparse=True):
         print("Using General Pauli Strings")
         num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits,sparse)
 
-    #chosing which routine of QITE will be used
-    if fail:
-        print("You need D>=T. Not running")
-    else:
-        if sparse:
-            print("Sparse Routine")
-            return QITE_sparse(n_qubits,H,H_trot,num_paulis,PD,psi_0,N,dt,vervose)
-        else:
-            print("Dense Routine, it will be slower and use more memory")
-            return QITE_dense(n_qubits,H,H_trot,num_paulis,PD,psi_0,N,dt,vervose)
-
-def QITE_sparse(n_qubits,H,H_trot,num_paulis,PD,psi_0,N,dt,vervose=True):
     psi_out=sp.lil_matrix((2**n_qubits,N+1),dtype=complex)
     psi_out[:,0]=psi_0.copy()
     psi_QITE=psi_0.copy()
@@ -62,47 +50,6 @@ def QITE_sparse(n_qubits,H,H_trot,num_paulis,PD,psi_0,N,dt,vervose=True):
             
         #Enegy of the state at time step i
         E_QITE[i+1] = np.real((psi_QITE.getH()@H@psi_QITE).trace())
-        psi_out[:,i+1]=psi_QITE.copy()
-        if vervose:
-            print("Step",i+1,"/",N,"with energy",E_QITE[i+1])
-    return E_QITE,psi_out,a
-
-def QITE_dense(n_qubits,H,H_trot,num_paulis,PD,psi_0,N,dt,vervose=True):
-    psi_out=np.zeros((2**n_qubits,N+1),dtype=complex)
-    psi_out[:,0]=psi_0.copy()
-    psi_QITE=psi_0
-    a=np.zeros((N,n_qubits,num_paulis),dtype=complex)
-    E_QITE=np.zeros(N+1)
-    E_QITE[0]=np.real((psi_QITE.T.conj()@H@psi_QITE))
-
-    for i in range(0,N):
-        #ara en aquest pas de temps anem a calcular els coeffs per a cada qubit
-        for l in range(H_trot.Nk):
-            #obtencio matrius S
-            P=np.zeros((num_paulis,2**n_qubits,2**n_qubits),dtype=complex)
-            for j in range(num_paulis):
-                P[j,:,:]=PD[l][j]
-            X=np.matmul(P,psi_QITE)
-            S=X@X.conj().T
-            HB=H_trot.Hk[l]
-            #obtencio coefficients b
-            aux=np.real((psi_QITE.conj().T@scipy.linalg.expm(-2*HB*dt)@psi_QITE))
-            c=cmath.sqrt(aux)
-            expH=scipy.linalg.expm(-HB*dt)
-            auxO=np.matmul(np.matmul(expH,P)-np.matmul(P,expH),psi_QITE)
-            b = -1j*np.matmul(auxO,psi_QITE.conj())/c/dt
-            #obtencio coefficients a
-            invS_ex=np.linalg.pinv(S+S.transpose())
-            a[i,l]=np.real(invS_ex@b).flatten()
-            
-            #ara evolucionem el qbit amb els nous coefficients
-            operator=np.zeros((2**n_qubits,2**n_qubits),dtype=complex)
-            for j in range(num_paulis):
-                operator+=a[i,l,j]*P[j,:,:]
-            psi_QITE = scipy.linalg.expm(-1j*operator*dt)@psi_QITE
-            
-        #valor esperat energia
-        E_QITE[i+1] = np.real((psi_QITE.conj().T@H@psi_QITE))
         psi_out[:,i+1]=psi_QITE.copy()
         if vervose:
             print("Step",i+1,"/",N,"with energy",E_QITE[i+1])
