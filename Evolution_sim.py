@@ -4,15 +4,15 @@ import cmath
 import scipy.sparse as sp
 import PauliStrings as pauli_strings
 
-def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=True,sparse=True):
+def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=False):
 
     #checking whick method to obtain pauli strings is used
     if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
         print("Using Real Pauli Strings") 
-        num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits,sparse)
+        num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
     else:
         print("Using General Pauli Strings")
-        num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits,sparse)
+        num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
 
     psi_out=sp.lil_matrix((2**n_qubits,N+1),dtype=complex)
     psi_out[:,0]=psi_0.copy()
@@ -49,11 +49,14 @@ def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=True,sparse=True):
             psi_QITE = sp.linalg.expm(-1j*operator*dt)@psi_QITE
             
         #Enegy of the state at time step i
+        if np.real((psi_QITE.getH()@H@psi_QITE).trace())>E_QITE[i]:
+            print('Energy doubly increased at step',i)
+            break
         E_QITE[i+1] = np.real((psi_QITE.getH()@H@psi_QITE).trace())
         psi_out[:,i+1]=psi_QITE.copy()
         if vervose:
             print("Step",i+1,"/",N,"with energy",E_QITE[i+1])
-    return E_QITE,psi_out,a
+    return E_QITE[0:i+1],psi_out[:,0:i+1],a[0:i+1,:,:]
 
 def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,lstsq=True):
     a=np.zeros((H_trot.Nk,num_paulis),dtype=complex)
@@ -87,7 +90,7 @@ def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,lstsq=True):
     return A_sum, lambda t: sp.linalg.expm(-1j*A_sum*t)
 
         
-def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=False,expm=False):
+def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=False):
     #checking whick method to obtain pauli strings is used
     if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
         print("Using Real Pauli Strings") 
