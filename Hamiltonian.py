@@ -14,7 +14,7 @@ class TrotterHamiltonian:
         self.indk = indk    #first qbit on which each piece acts on
 
 # %%
-def TFIM(J,h,n_qubits,T=2,sparse=True):
+def TFIM(J,h,n_qubits,T=2,sparse=True,verbose=False):
     """
     This function ...
     """
@@ -88,9 +88,10 @@ def TFIM(J,h,n_qubits,T=2,sparse=True):
     else:
         difH=np.linalg.norm((H-sum(H_T)),ord=2)
     if difH<1e-14:
-        print('Succesfull Troterization')
-        print("The Trotterization consists of",N_k,"terms with the starting qubit of each piece at",index)
-        print("Each single qubit term appears",R,"times")
+        if verbose:
+            print('Succesfull Troterization')
+            print("The Trotterization consists of",N_k,"terms with the starting qubit of each piece at",index)
+            print("Each single qubit term appears",R,"times")
     else:
         print('Failed Trotterization, you can still use the generated full Hamiltonian')
 
@@ -99,7 +100,7 @@ def TFIM(J,h,n_qubits,T=2,sparse=True):
     return H,H_trot
 
 
-def ClusterIsing(Lambda,n_qubits,T=3,sparse=True):
+def ClusterIsing(Lambda,n_qubits,T=3,sparse=True,verbose=False):
     """
     This function generates the Cluster-Ising Hamiltonian:
     H=-XZX+lambda*YY
@@ -180,9 +181,10 @@ def ClusterIsing(Lambda,n_qubits,T=3,sparse=True):
     else:
         difH=np.linalg.norm((H-sum(H_T)),ord=2)
     if difH<1e-14:
-        print('Succesfull Troterization')
-        print("The Trotterization consists of",N_k,"terms with the starting qubit of each piece at",index)
-        print("Each 2-qubit term appears",R-1,"times. And each 3-qubit term appears",R-2,"times")
+        if verbose:
+            print('Succesfull Troterization')
+            print("The Trotterization consists of",N_k,"terms with the starting qubit of each piece at",index)
+            print("Each 2-qubit term appears",R-1,"times. And each 3-qubit term appears",R-2,"times")
     else:
         print('Failed Trotterization, you can still use the generated full Hamiltonian')
 
