@@ -1,7 +1,6 @@
 import Hamiltonian as ham
 import scipy.sparse as sp
 import numpy as np
-from matplotlib import pyplot as plt
 import Evolution_sim as evol
 import scipy.io as sio
 
