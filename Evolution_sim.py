@@ -8,10 +8,10 @@ def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=False):
 
     #checking whick method to obtain pauli strings is used
     if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
-        print("Using Real Pauli Strings") 
+        #print("Using Real Pauli Strings") 
         num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
     else:
-        print("Using General Pauli Strings")
+        #print("Using General Pauli Strings")
         num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
 
     psi_out=sp.lil_matrix((2**n_qubits,N+1),dtype=complex)
