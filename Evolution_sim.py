@@ -135,7 +135,7 @@ def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=False):
                 E_prev = E_test
                 
                 if expm:
-                    psi_test = sp.linalg.expm_mulitply(-1j*An*t,psi_prev)
+                    psi_test = sp.linalg.expm_multiply(-1j*An*t,psi_prev)
                 else:
                     psi_test = UN(t)@psi_prev
 
