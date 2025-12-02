@@ -58,7 +58,7 @@ def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=False):
             print("Step",i+1,"/",N,"with energy",E_QITE[i+1])
     return E_QITE[0:i+1],psi_out[:,0:i+1],a[0:i+1,:,:]
 
-def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,lstsq=True):
+def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,method='LU'):
     a=np.zeros((H_trot.Nk,num_paulis),dtype=complex)
     A_sum = sp.csc_matrix((2**n_qubits,2**n_qubits),dtype=complex)
     for l in range(H_trot.Nk):
@@ -72,25 +72,34 @@ def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,lstsq=True):
             X[:,j]=PD[l][j]@psi_QITE
         S=(X.getH()@X).todense()
         
-        if lstsq:
+        if method=='lstsq':
             #least square solution of equation (S+S^T)*a = b (step 4 in algorithm)
-            a[l]=(scipy.linalg.lstsq(S+S.T,b,lapack_driver='gelsd'))[0]
-        else:
+            v,res,rank,s=scipy.linalg.lstsq(S+S.T,b,lapack_driver='gelsd')
+            a[l]=v
+            #print(res,rank)
+        if method=='pinv':
             #pseudo-inverse method
             invS_ex=scipy.linalg.pinvh(S+S.transpose())
+            print(np.linalg.norm(invS_ex*(S+S.T)-np.eye(num_paulis)))
             a[l]=np.real(invS_ex@b).flatten()
+        if method=='LU':
+            ep=1e-14
+            a[l]=(scipy.linalg.solve(S+S.T+ep*np.eye(num_paulis),b,assume_a='hermitian'))
+        print(np.linalg.norm((S+S.T)@a[l]-b))
         
         #construction of the evolution operator (steps 5 and 6 in the algorithm)
         operator=sp.csc_matrix((2**n_qubits,2**n_qubits),dtype=complex)
         for j in range(num_paulis):
             operator+=a[l,j]*PD[l][j]
-        psi_QITE = sp.linalg.expm(-1j*operator*dt)@psi_QITE
+        psi_QITE = sp.linalg.expm(-1j*operator*dt)@psi_QITE 
+        #TODO: should I not evolve the state for the different pieces of the Hamiltonian that drive ITE? 
+        #      in the practical scenario would do so to reduce resources
         A_sum += operator
         
     return A_sum, lambda t: sp.linalg.expm(-1j*A_sum*t)
 
         
-def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=False):
+def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=True,methodLS='LU'):
     #checking whick method to obtain pauli strings is used
     if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
         print("Using Real Pauli Strings") 
@@ -119,7 +128,7 @@ def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=False):
                 psi_prev = psi_QITE[:,steps]
                 t = dt #times at which we probe the energies, dt is hyperparam of line search
                 print("Computing U at step",steps)
-                An,UN = compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_prev,dt)
+                An,UN = compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_prev,dt,method=methodLS)
                 indx.append(steps)
                 psi_test = UN(t)@psi_prev
                 E_test = np.real((psi_test.conj().T@H@psi_test).trace())
