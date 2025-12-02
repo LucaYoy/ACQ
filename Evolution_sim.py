@@ -80,12 +80,12 @@ def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,method='LU'):
         if method=='pinv':
             #pseudo-inverse method
             invS_ex=scipy.linalg.pinvh(S+S.transpose())
-            print(np.linalg.norm(invS_ex*(S+S.T)-np.eye(num_paulis)))
+            #print(np.linalg.norm(invS_ex*(S+S.T)-np.eye(num_paulis)))
             a[l]=np.real(invS_ex@b).flatten()
         if method=='LU':
             ep=1e-14
             a[l]=(scipy.linalg.solve(S+S.T+ep*np.eye(num_paulis),b,assume_a='hermitian'))
-        print(np.linalg.norm((S+S.T)@a[l]-b))
+        #print(np.linalg.norm((S+S.T)@a[l]-b))
         
         #construction of the evolution operator (steps 5 and 6 in the algorithm)
         operator=sp.csc_matrix((2**n_qubits,2**n_qubits),dtype=complex)
