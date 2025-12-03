@@ -130,7 +130,10 @@ def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=True,methodLS='LU'):
                 print("Computing U at step",steps)
                 An,UN = compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_prev,dt,method=methodLS)
                 indx.append(steps)
-                psi_test = UN(t)@psi_prev
+                if expm:
+                    psi_test = sp.linalg.expm_multiply(-1j*An*t,psi_prev)
+                else:
+                    psi_test = UN(t)@psi_prev
                 E_test = np.real((psi_test.conj().T@H@psi_test).trace())
             
             # test if energy increased and if not evolve with the same U for more time 
