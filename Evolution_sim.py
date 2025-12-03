@@ -4,7 +4,7 @@ import cmath
 import scipy.sparse as sp
 import PauliStrings as pauli_strings
 
-def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=False):
+def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=False,method='LU'):
 
     #checking whick method to obtain pauli strings is used
     if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
@@ -39,8 +39,20 @@ def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=False):
             #invS_ex=np.linalg.pinv(S+S.T)
             #a[i,l]=np.real(invS_ex@b)
 
-            #least square solution of equation (S+S^T)*a = b (step 4 in algorithm)
-            a[i,l]=(scipy.linalg.lstsq(S+S.T,b,lapack_driver='gelsd'))[0]
+            #solution of equation (S+S^T)*a = b (step 4 in algorithm)
+            if method=='lstsq':
+                #least square solution of equation (S+S^T)*a = b (step 4 in algorithm)
+                v,res,rank,s=scipy.linalg.lstsq(S+S.T,b,lapack_driver='gelsd')
+                a[i,l]=v
+                #print(res,rank)
+            if method=='pinv':
+                #pseudo-inverse method
+                invS_ex=scipy.linalg.pinvh(S+S.transpose())
+                #print(np.linalg.norm(invS_ex*(S+S.T)-np.eye(num_paulis)))
+                a[i,l]=np.real(invS_ex@b).flatten()
+            if method=='LU':
+                ep=1e-14
+                a[i,l]=(scipy.linalg.solve(S+S.T+ep*np.eye(num_paulis),b,assume_a='hermitian'))
             
             #construction of the evolution operator (steps 5 and 6 in the algorithm)
             operator=sp.csc_matrix((2**n_qubits,2**n_qubits),dtype=complex)
