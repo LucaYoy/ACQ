@@ -51,7 +51,7 @@ def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=False,method='LU'):
                 #print(np.linalg.norm(invS_ex*(S+S.T)-np.eye(num_paulis)))
                 a[i,l]=np.real(invS_ex@b).flatten()
             if method=='LU':
-                ep=1e-14
+                ep=1e-10
                 a[i,l]=(scipy.linalg.solve(S+S.T+ep*np.eye(num_paulis),b,assume_a='hermitian'))
             
             #construction of the evolution operator (steps 5 and 6 in the algorithm)
@@ -95,7 +95,7 @@ def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,method='LU'):
             #print(np.linalg.norm(invS_ex*(S+S.T)-np.eye(num_paulis)))
             a[l]=np.real(invS_ex@b).flatten()
         if method=='LU':
-            ep=1e-14
+            ep=1e-10
             a[l]=(scipy.linalg.solve(S+S.T+ep*np.eye(num_paulis),b,assume_a='hermitian'))
         #print(np.linalg.norm((S+S.T)@a[l]-b))
         
