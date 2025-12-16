@@ -135,7 +135,7 @@ def ClusterIsing(Lambda,n_qubits,T=3,sparse=True,verbose=False):
         H = sp.csc_matrix(H)
 
     ###############################################################################################################################
-    Tstr=2
+    Tstr=3
     #Tstr is the Trotterization strategy, when your chain can be divided into whole pieces (n_qubits/T is a whole number)
     #to include the interaction terms between pieces you have to add orther pieces, Tstr=2 add one of them, Tstr=3 adds two
     #For this model that contains two and three body terms we default it to Tstr=2 for simplicity
