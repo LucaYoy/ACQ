@@ -1,10 +1,51 @@
+from typing import Tuple, Callable, List, Optional
 import numpy as np
 import scipy
 import cmath 
 import scipy.sparse as sp
 import PauliStrings as pauli_strings
+from Hamiltonian import TrotterHamiltonian
 
-def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=False,method='LU'):
+def QITE(n_qubits: int, 
+         H: sp.spmatrix, 
+         H_trot: TrotterHamiltonian, 
+         D: int, 
+         psi_0: sp.spmatrix, 
+         N: int, 
+         dt: float, 
+         vervose: bool = False, 
+         method: str = 'LU') -> Tuple[np.ndarray, sp.lil_matrix, np.ndarray]:
+    """
+    Quantum Imaginary Time Evolution (QITE) algorithm for simulating ground state preparation.
+    
+    This function implements the QITE algorithm, which approximates imaginary time evolution. 
+    The algorithm iteratively constructs unitary operators
+    that approximate the action of exp(-H*dt) on the quantum state.
+    
+    Args:
+        n_qubits: Number of qubits in the quantum system.
+        H: Full Hamiltonian operator as a sparse matrix.
+        H_trot: Trotterized Hamiltonian object (TrotterHamiltonian) containing decomposed terms (must have Nk and Hk attributes).
+        D: Dimension parameter controlling the Pauli string basis size.
+        psi_0: Initial quantum state as a sparse column vector.
+        N: Number of time steps for the evolution.
+        dt: Time step size for the imaginary time evolution.
+        vervose: If True, prints energy at each step. Default is False.
+        method: Method for solving linear system ('LU', 'lstsq', or 'pinv'). Default is 'LU'.
+    
+    Returns:
+        A tuple containing:
+            - E_QITE: Array of energies at each time step (length varies if early termination occurs).
+            - psi_out: Sparse matrix where each column is the state at a given time step.
+            - a: Array of coefficients for Pauli operators at each time step and qubit.
+              Shape: (num_steps, num_trotter_terms, num_paulis).
+    
+    Notes:
+        - The method parameter determines how the linear system (S+S^T)*a = b is solved:
+          * 'LU': LU decomposition with small regularization
+          * 'lstsq': Least squares solution
+          * 'pinv': Pseudo-inverse method
+    """
 
     #checking whick method to obtain pauli strings is used
     if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
@@ -70,7 +111,33 @@ def QITE(n_qubits,H,H_trot,D,psi_0,N,dt,vervose=False,method='LU'):
             print("Step",i+1,"/",N,"with energy",E_QITE[i+1])
     return E_QITE[0:i+1],psi_out[:,0:i+1],a[0:i+1,:,:]
 
-def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,method='LU'):
+def compute_fuse_U(n_qubits: int, 
+                   H_trot: TrotterHamiltonian, 
+                   num_paulis: int, 
+                   PD: List, 
+                   psi_QITE: sp.spmatrix, 
+                   dt: float, 
+                   method: str = 'LU') -> Tuple[sp.csc_matrix, Callable[[float], sp.csc_matrix], np.ndarray]:
+    """
+    Compute the fused unitary operator for ACQ (Adaptive QITE) by combining Trotter steps.
+    
+    Args:
+        n_qubits: Number of qubits in the quantum system.
+        H_trot: Trotterized Hamiltonian object (TrotterHamiltonian) containing decomposed terms (must have Nk and Hk attributes).
+        num_paulis: Number of Pauli strings in the operator basis.
+        PD: List of Pauli decomposition matrices for each Trotter term.
+            Shape: [num_trotter_terms][num_paulis] where each element is a sparse matrix.
+        psi_QITE: Current quantum state as a sparse column vector.
+        dt: Time step size for the evolution.
+        method: Method for solving linear system ('LU', 'lstsq', or 'pinv'). Default is 'LU'.
+    
+    Returns:
+        A tuple containing:
+            - A_sum: The total anti-Hermitian generator (sum of all operator terms).
+            - UN: A lambda function that takes time t and returns exp(-i*A_sum*t) as a sparse matrix.
+            - a: Array of coefficients for Pauli operators for each Trotter term.
+              Shape: (num_trotter_terms, num_paulis).
+    """
     a=np.zeros((H_trot.Nk,num_paulis),dtype=complex)
     A_sum = sp.csc_matrix((2**n_qubits,2**n_qubits),dtype=complex)
     for l in range(H_trot.Nk):
@@ -111,7 +178,54 @@ def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,method='LU'):
     return A_sum, lambda t: sp.linalg.expm(-1j*A_sum*t), a
 
         
-def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=True,methodLS='LU'):
+def ACQ(n_qubits: int, 
+        H: sp.spmatrix, 
+        H_trot: TrotterHamiltonian, 
+        D: int, 
+        psi_0: sp.spmatrix, 
+        N: int, 
+        dt: float, 
+        failstop: bool = True, 
+        expm: bool = True, 
+        methodLS: str = 'LU') -> Tuple[np.ndarray, sp.lil_matrix, List[int], List[float], List[np.ndarray]]:
+    """
+    Adaptive QITE (ACQ) algorithm for efficient quantum imaginary time evolution.
+    
+    ACQ improves upon standard QITE by reusing the same unitary operator across multiple
+    time steps, reducing classical overhead. The unitary is recomputed only when
+    the energy begins to increase, implementing an adaptive line search strategy.
+    
+    Args:
+        n_qubits: Number of qubits in the quantum system.
+        H: Full Hamiltonian operator as a sparse matrix.
+        H_trot: Trotterized Hamiltonian object (TrotterHamiltonian) containing decomposed terms (must have Nk and Hk attributes).
+        D: Dimension parameter controlling the Pauli string basis size.
+        psi_0: Initial quantum state as a sparse column vector.
+        N: Maximum number of time steps for the evolution.
+        dt: Time step
+        failstop: If True, stops evolution when energy increases even after unitary recomputation.
+                  If False, continues attempting evolution. Default is True.
+        expm: If True, uses sparse matrix exponential multiplication (expm_multiply).
+              If False, uses precomputed unitary function. Default is True.
+        methodLS: Method for solving linear system in unitary construction ('LU', 'lstsq', or 'pinv').
+                  Default is 'LU'.
+    
+    Returns:
+        A tuple containing:
+            - E: Array of energies at each successful time step.
+            - psi_QITE: Sparse matrix where each column is the state at a given time step.
+            - indx: List of step indices where the unitary operator was recomputed.
+            - times: List of evolution times achieved with each unitary before recomputation.
+            - a: List of coefficient arrays, one for each unitary recomputation.
+              Each array has shape (num_trotter_terms, num_paulis).
+    
+    Notes:
+        - The algorithm implements an adaptive line search: it reuses the same unitary U(t)
+          for as long as the energy decreases, incrementing t by dt at each step.
+        - When energy increases, the unitary is recomputed at the current state.
+        - If energy increases even after recomputation and failstop=True, evolution terminates.
+        - Uses either real or general Pauli string decomposition based on whether H and psi_0 are real.
+    """
     #checking whick method to obtain pauli strings is used
     if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
         print("Using Real Pauli Strings") 
