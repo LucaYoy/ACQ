@@ -61,14 +61,3 @@ for n in n_qubits:
             'indx' : indx
         }
         sio.savemat('runs_ACQ/ACQ_TFIM_J%1.1f_h%1.1f_N%d_D%d_T%d.mat'%(J,h,n,d,T), savedict)
-
-# %%
-psi_ACQ
-
-# %%
-EACQ.size
-
-# %%
-
-
-
