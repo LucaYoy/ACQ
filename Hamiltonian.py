@@ -1,3 +1,4 @@
+from typing import List, Tuple, Union
 from fractions import Fraction
 import numpy as np
 import scipy.sparse as sp
@@ -6,7 +7,21 @@ from qiskit.quantum_info import Pauli,SparsePauliOp
 
 
 class TrotterHamiltonian:
-    def __init__(self, T: int, Nk: int, Rq: int, Hk: list, indk: np.ndarray):
+    """
+    Container class for a Trotterized Hamiltonian decomposition.
+    
+    This class stores the decomposition of a Hamiltonian into smaller pieces suitable
+    for Trotterization, including metadata about the decomposition structure and how
+    operators are distributed across qubits.
+    
+    Attributes:
+        T: Trotter size (number of qubits covered by each Hamiltonian piece).
+        Nk: Number of Hamiltonian pieces in the decomposition.
+        Rq: Number of times each single qubit operator appears.
+        Hk: List of sparse matrices representing each Hamiltonian term/piece.
+        indk: Array of starting qubit indices for each Hamiltonian piece.
+    """
+    def __init__(self, T: int, Nk: int, Rq: int, Hk: List[sp.spmatrix], indk: np.ndarray):
         self.T = T          #Trotter size
         self.Nk = Nk        #number of pieces
         self.Rq = Rq        #number of times each single qubit operator acts
@@ -14,9 +29,37 @@ class TrotterHamiltonian:
         self.indk = indk    #first qbit on which each piece acts on
 
 # %%
-def TFIM(J,h,n_qubits,T=2,sparse=True,verbose=False):
+def TFIM(J: float, 
+         h: float, 
+         n_qubits: int, 
+         T: int = 2, 
+         sparse: bool = True, 
+         verbose: bool = False) -> Tuple[Union[np.ndarray, sp.csc_matrix], TrotterHamiltonian]:
     """
-    This function ...
+    Generate the Transverse Field Ising Model (TFIM) Hamiltonian and its Trotterization.
+    
+    The TFIM Hamiltonian is defined as:
+    H = J * ∑ᵢ Zᵢ Zᵢ₊₁ + h * ∑ᵢ Xᵢ
+    
+    This function constructs both the full Hamiltonian and a Trotterized decomposition
+    into Nk pieces, suitable for efficient time evolution simulation. Periodic boundary
+    conditions are applied (chain is a ring).
+    
+    Args:
+        J: Coupling strength for the ZZ interaction terms.
+        h: Transverse field strength for the X terms.
+        n_qubits: Number of qubits in the chain.
+        T: Trotter size (number of qubits per Hamiltonian piece). Must be >= 2 and <= n_qubits.
+           Default is 2.
+        sparse: If True, returns sparse matrices (scipy.sparse.csc_matrix).
+                If False, returns dense numpy arrays. Default is True.
+        verbose: If True, prints Trotterization details. Default is False.
+    
+    Returns:
+        A tuple containing:
+            - H: The full TFIM Hamiltonian (sparse or dense based on 'sparse' parameter).
+            - H_trot: TrotterHamiltonian object containing the decomposed Hamiltonian pieces.
+
     """
     X=[]
     ZZ=[]
@@ -100,14 +143,34 @@ def TFIM(J,h,n_qubits,T=2,sparse=True,verbose=False):
     return H,H_trot
 
 
-def ClusterIsing(Lambda,n_qubits,T=3,sparse=True,verbose=False):
+def ClusterIsing(Lambda: float, 
+                 n_qubits: int, 
+                 T: int = 3, 
+                 sparse: bool = True, 
+                 verbose: bool = False) -> Tuple[Union[np.ndarray, sp.csc_matrix], TrotterHamiltonian]:
     """
-    This function generates the Cluster-Ising Hamiltonian:
-    H=-XZX+lambda*YY
-    T=3 is the default value for the Trotter pieces of the Hamiltonian, it is the minimum one, due to 3 body terms
-    Tstr=
-    R3=1 
-    By default this function returns Matrices in 
+    Generate the Cluster-Ising Hamiltonian and its Trotterization.
+    
+    The Cluster-Ising Hamiltonian is defined as:
+    H = -∑ᵢ Zᵢ Xᵢ₊₁ Zᵢ₊₂ + λ * ∑ᵢ Yᵢ Yᵢ₊₁
+    
+    This Hamiltonian contains both two-body (YY) and three-body (ZXZ) interaction terms.
+    Periodic boundary conditions are applied. The function constructs both the full
+    Hamiltonian and a Trotterized decomposition suitable for efficient simulation.
+    
+    Args:
+        Lambda: Coupling strength for the YY interaction terms.
+        n_qubits: Number of qubits in the chain.
+        T: Trotter size (number of qubits per Hamiltonian piece). Must be >= 3 due to
+           three-body terms. Default is 3.
+        sparse: If True, returns sparse matrices (scipy.sparse.csc_matrix).
+                If False, returns dense numpy arrays. Default is True.
+        verbose: If True, prints Trotterization details. Default is False.
+    
+    Returns:
+        A tuple containing:
+            - H: The full Cluster-Ising Hamiltonian (sparse or dense based on 'sparse' parameter).
+            - H_trot: TrotterHamiltonian object containing the decomposed Hamiltonian pieces.
     """
     ZXZ=[]
     YY=[]
