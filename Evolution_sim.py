@@ -108,7 +108,7 @@ def compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_QITE,dt,method='LU'):
         #      in the practical scenario would do so to reduce resources
         A_sum += operator
         
-    return A_sum, lambda t: sp.linalg.expm(-1j*A_sum*t)
+    return A_sum, lambda t: sp.linalg.expm(-1j*A_sum*t), a
 
         
 def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=True,methodLS='LU'):
@@ -131,6 +131,8 @@ def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=True,methodLS='LU'):
         E_prev = E[0]        
         
         indx = []
+        times = []
+        a = []
         steps = 0
         fallo = False
         while steps<N: 
@@ -140,8 +142,9 @@ def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=True,methodLS='LU'):
                 psi_prev = psi_QITE[:,steps]
                 t = dt #times at which we probe the energies, dt is hyperparam of line search
                 print("Computing U at step",steps)
-                An,UN = compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_prev,dt,method=methodLS)
+                An,UN,a_piece = compute_fuse_U(n_qubits,H_trot,num_paulis,PD,psi_prev,dt,method=methodLS)
                 indx.append(steps)
+                a.append(a_piece)
                 if expm:
                     psi_test = sp.linalg.expm_multiply(-1j*An*t,psi_prev)
                 else:
@@ -172,8 +175,10 @@ def ACQ(n_qubits,H,H_trot,D,psi_0,N,dt,failstop=True,expm=True,methodLS='LU'):
                 #energy increased even after recalculation
                 fallo = True
                 if failstop:
+                    a.pop() #removing last element as no evolution was done
                     print("Energy doubly increased, stopping criteria activated at step",steps+1)
-                    return E,psi_QITE,indx
+                    return E,psi_QITE,indx,times,a
+            
+            times.append(t-dt) #storing time until last successful evolution
 
-        return E,psi_QITE,indx
-
+        return E,psi_QITE,indx,times,a
