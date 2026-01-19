@@ -39,7 +39,7 @@ for n in n_qubits:
     psigs=eig['psi0']
     for d in D:
         print("Computing QITE for N=",n,"D=",d)
-        EACQ,psi_ACQ,indx = evol.ACQ(n,H,H_trot,d,psi_0,N,dt)
+        EACQ,psi_ACQ,indx,_,_ = evol.ACQ(n,H,H_trot,d,psi_0,N,dt)
         NQ=len(EACQ)
         var_ACQ=np.zeros(NQ)
         F_ACQ=np.zeros(NQ)
