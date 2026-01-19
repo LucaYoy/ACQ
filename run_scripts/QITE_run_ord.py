@@ -17,8 +17,8 @@ def variance(psi,H):
 
 
 #Hamiltonian Params Traverse Field Ising model
-n_qubits=range(6,15)
-D=range(2,7,2)
+n_qubits=range(8,9)
+D=range(4,5,2)
 J=1
 h=0.5
 T=2

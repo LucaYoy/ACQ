@@ -1,12 +1,11 @@
-# %%
 import Hamiltonian as ham
 import numpy as np
 import scipy.io as sio
 
 # %%
 n_qubits=range(4,16)
-J=0.5
-h=1
+J=1
+h=0.5
 
 for n in n_qubits:
     H,H_trot=ham.TFIM(J,h,n)

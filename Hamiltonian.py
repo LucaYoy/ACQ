@@ -254,3 +254,69 @@ def ClusterIsing(Lambda: float,
     H_trot=TrotterHamiltonian(T,N_k,R,H_T,index)
     
     return H,H_trot
+
+
+def Heisenberg(J,n_qubits,sparse=True):
+    XX=[]
+    YY=[]
+    ZZ=[]
+    for i in range(n_qubits-1): #open boundary
+        # Hamiltonian
+        sxx=["I"]*n_qubits
+        syy=["I"]*n_qubits
+        szz=["I"]*n_qubits
+        i1= (i+1)%n_qubits #periodic index
+        sxx[i]="X"
+        sxx[i1]="X"
+        syy[i]="Y"
+        syy[i1]="Y"
+        szz[i]="Z"
+        szz[i1]="Z"
+        XX.append(Pauli(''.join(sxx)).to_matrix(sparse=sparse))
+        YY.append(Pauli(''.join(syy)).to_matrix(sparse=sparse))
+        ZZ.append(Pauli(''.join(szz)).to_matrix(sparse=sparse))
+        
+    H = np.sum(XX,axis=0) + np.sum(YY,axis=0) + J*np.sum(ZZ,axis=0)
+    if sparse:
+        H = sp.csc_matrix(H)
+    #############################################################
+    H_T=[]
+    T=2
+    N_k=Fraction(n_qubits,T).numerator
+    R=Fraction(n_qubits,T).denominator
+    if R==1:
+        N_k=N_k*2
+        R=R*2
+    index=np.floor(n_qubits/N_k*np.arange(N_k)).astype(int).tolist()
+    for i in range(N_k-1):
+        ind=index[i]
+        h_k=np.zeros((2**n_qubits,2**n_qubits),dtype=complex)
+        
+        #Two body terms
+        for j in range(T-1):
+            indT=(ind+j)%n_qubits
+            ocr=index.count((indT+1)%n_qubits)
+            h_k=h_k+(XX[indT]+YY[indT]+J*ZZ[indT])/(R-ocr)
+            #print('YY in {',indT,indT+1,'} appears',R-ocr,'times')
+        
+        if sparse:
+            H_T.append(sp.csc_matrix(h_k))
+        else:
+            H_T.append(h_k)
+    N_k=N_k-1 #open boundary, remove last term
+    ###################################################
+    #This is a check to see if the trotterization is the same as the original Hamiltonian
+    if sparse:
+        difH=sp.linalg.norm((H-sum(H_T)),ord=2)
+    else:
+        difH=np.linalg.norm((H-sum(H_T)),ord=2)
+    print('Heisenberg model with OBC and Hamiltonian pieces of locality T=2')
+    if difH<1e-14:
+        print('Succesfull Troterization')
+        print("The Trotterization consists of",N_k,"terms with the starting qubit of each piece at",index[0:-1])
+    else:
+        print('Failed Trotterization, you can still use the generated full Hamiltonian')
+
+    H_trot=TrotterHamiltonian(T,N_k,R,H_T,index)
+
+    return H,H_trot
