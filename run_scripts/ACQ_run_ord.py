@@ -17,8 +17,8 @@ def variance(psi,H):
 
 
 #Hamiltonian Params Traverse Field Ising model
-n_qubits=range(6,15)
-D=range(2,7,2)
+n_qubits=range(8,9)
+D=range(4,5,2)
 J=1
 h=0.5
 T=2
@@ -61,14 +61,3 @@ for n in n_qubits:
             'indx' : indx
         }
         sio.savemat('runs_ACQ/ACQ_TFIM_J%1.1f_h%1.1f_N%d_D%d_T%d.mat'%(J,h,n,d,T), savedict)
-
-# %%
-psi_ACQ
-
-# %%
-EACQ.size
-
-# %%
-
-
-
