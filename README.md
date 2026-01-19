@@ -1,4 +1,4 @@
-# ACQ: Adaptive Circuit QITE — Repository Overview
+# ACQ: Adaptive time Compressed QITE — Repository Overview
 
 This repository contains code and notebooks for Quantum Imaginary Time Evolution (QITE) and Adaptive time Compressed QITE (ACQ), along with tools to build and evaluate transpiled circuits on realistic backends. ACQ is an algorithm that reuses the same effective unitary across multiple time steps, recomputing it only when the energy stops decreasing, which can reduce compilation overhead while preserving convergence.
 
