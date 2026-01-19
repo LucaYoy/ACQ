@@ -256,7 +256,26 @@ def ClusterIsing(Lambda: float,
     return H,H_trot
 
 
-def Heisenberg(J,n_qubits,sparse=True):
+def Heisenberg(J: float, 
+               n_qubits: int, 
+               sparse: bool = True) -> Tuple[Union[np.ndarray, sp.csc_matrix], TrotterHamiltonian]:
+    """
+    Generate the Heisenberg model Hamiltonian and its Trotterization.
+    
+    The Heisenberg Hamiltonian is defined as:
+    H = ∑ᵢ (Xᵢ Xᵢ₊₁ + Yᵢ Yᵢ₊₁ + J Zᵢ Zᵢ₊₁)
+    
+    Uses periodic boundary conditions
+    
+    Args:
+        J: Coupling strength for the ZZ interaction terms.
+        n_qubits: Number of qubits in the chain.
+        sparse: If True, returns sparse matrices. Default is True.
+    
+    Returns:
+        Tuple of (H, H_trot) where H is the full Hamiltonian and H_trot 
+        is the TrotterHamiltonian decomposition with T=2.
+    """
     XX=[]
     YY=[]
     ZZ=[]
