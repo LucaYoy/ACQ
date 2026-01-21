@@ -16,7 +16,7 @@ interpretation” and provides a practical path from Hamiltonian models to trans
 ## Repository Structure
 
 - ACQ/
-	- [Evolution_sim.py](Evolution_sim.py): Implements `QITE()` and `ACQ()`.
+	- [Evolution.py](Evolution.py): Implements `QITE()` and `ACQ()`.
 		- `QITE()`: Iterative imaginary-time update using per-piece generators.
 		- `ACQ()`: Adaptive strategy that reuses a fused unitary until energy stops decreasing.
 	- [Hamiltonian.py](Hamiltonian.py): Trotterization helpers for models:
@@ -44,7 +44,7 @@ Run a minimal ACQ experiment on TFIM:
 import numpy as np
 import scipy.sparse as sp
 from Hamiltonian import TFIM
-from Evolution_sim import ACQ
+from Evolution import ACQ
 
 n_qubits, T, D = 5, 2, 2
 J, h, dt, N = 0.5, 1.0, 0.1, 50
