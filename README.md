@@ -67,7 +67,7 @@ print("Final energy:", E[np.nonzero(E)].tolist()[-1])
 
 ## Citing ACQ
 
-If you use this code, please cite the ACQ preprint included with the repository.
+If you use this code, please cite [future publication reference].
 
 ## Acknowledgments
 
