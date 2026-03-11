@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+acq/Evolution.py
+acq/Hamiltonian.py
+acq/PauliStrings.py
+acq/__init__.py
+acq/transpile.py
+acq.egg-info/PKG-INFO
+acq.egg-info/SOURCES.txt
+acq.egg-info/dependency_links.txt
+acq.egg-info/requires.txt
+acq.egg-info/top_level.txt

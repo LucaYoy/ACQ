@@ -12,7 +12,8 @@ def QITE(n_qubits: int,
          D: int, 
          psi_0: sp.spmatrix, 
          N: int, 
-         dt: float, 
+         dt: float,
+         include_projection = False, 
          vervose: bool = False, 
          method: str = 'LU') -> Tuple[np.ndarray, sp.lil_matrix, np.ndarray]:
     """
@@ -75,6 +76,9 @@ def QITE(n_qubits: int,
                 b[j] = -1j*(psi_QITE.getH()@(expHdt@PD[l][j]-PD[l][j]@expHdt)@psi_QITE).trace()/c/dt
                 X[:,j]=PD[l][j]@psi_QITE
             S=(X.getH()@X).todense()
+            if include_projection:
+                mu = (psi_QITE.getH()@X).toarray().ravel()
+                S -= np.outer(mu.conj(),mu)
            
             #obtencio coefficients a
             #invS_ex=np.linalg.pinv(S+S.T)
