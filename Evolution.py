@@ -78,6 +78,8 @@ def QITE(n_qubits: int,
             S=(X.getH()@X).todense()
             if include_projection:
                 mu = (psi_QITE.getH()@X).toarray().ravel()
+                if np.allclose(mu, 0.0, atol=1e-12):
+                    print("Warning: projection term is zero")
                 S -= np.outer(mu.conj(),mu)
            
             #obtencio coefficients a
