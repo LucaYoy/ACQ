@@ -83,6 +83,7 @@ def build_acq_circuit_qrisp(
     trotter_steps: int = 1,
     trotter_method: str = "commuting",
     atol: float = 1e-10,
+    alpha: float = 1.0,
 ):
     """
     Qrisp equivalent of ACQ circuit construction from transpile_circuit_qite_adap.
@@ -101,6 +102,7 @@ def build_acq_circuit_qrisp(
         steps: Number of adaptive steps to apply.
         U_0: Optional initial state preparation callable, U_0(qv).
         trotter_steps: Number of Trotter steps in qrisp operator evolution.
+        alpha: Scaling factor for evolution times in qrisp operator evolution.
         trotter_method: Qrisp trotterization method (e.g. "commuting").
         atol: Tolerance for discarding tiny coefficients / imaginary noise.
 
@@ -124,7 +126,7 @@ def build_acq_circuit_qrisp(
             A_k = _qrisp_generator_from_coeffs(PD_k_reduced, a[step][k, :], support, atol)
             if A_k == 0:
                 continue
-            A_k.trotterization(method=trotter_method)(qv, t_step, trotter_steps)
+            A_k.trotterization(method=trotter_method)(qv, t_step/alpha, trotter_steps)
 
     return qv.qs.compile()
 

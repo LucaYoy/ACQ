@@ -279,7 +279,7 @@ def Heisenberg(J: float,
     XX=[]
     YY=[]
     ZZ=[]
-    for i in range(n_qubits-1): #open boundary
+    for i in range(n_qubits-1): #open
         # Hamiltonian
         sxx=["I"]*n_qubits
         syy=["I"]*n_qubits
