@@ -227,8 +227,9 @@ def general_OBC(H_trot,
             for qi in product('IXYZ',repeat=D):
                 s=["I"]*n_qubits
                 for k in range(D):
-                    ind=(H_trot.indk[j]+k-disp)%n_qubits
-                    s[ind]=qi[k]
+                    ind=(H_trot.indk[j]+k-disp) #now we dont wrap around the chain
+                    if ind>=0 & ind<n_qubits:   #we only keep the indices that stay inside the chain
+                        s[ind]=qi[k]
                 pstr=''.join(s)
                 PD[j][i]=sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse))
                 PD_str=pstr
@@ -302,8 +303,9 @@ def real_OBC(H_trot,
             for qi in product('IXYZ',repeat=D):
                 s=["I"]*n_qubits
                 for k in range(D):
-                    ind=(H_trot.indk[j]+k-disp)%n_qubits
-                    s[ind]=qi[k]
+                    ind=(H_trot.indk[j]+k-disp) #now we dont wrap around the chain
+                    if ind>=0 & ind<n_qubits:   #we only keep the indices that stay inside the chain
+                        s[ind]=qi[k]
                 plist=s
                 num_Y=0
                 for x in plist:
