@@ -70,7 +70,7 @@ def general(H_trot,
                     s[ind]=qi[k]
                 pstr=''.join(s)
                 PD[j][i]=sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse))
-                PD_str=pstr
+                PD_str[j][i]=pstr
                 i=i+1
     if sparse:
         PD = [[sp.csc_matrix(val) for val in row] for row in PD]

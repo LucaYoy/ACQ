@@ -148,6 +148,7 @@ def transpile_circuit_qite(n_qubits: int,
     tr_unitary = Operator(tr_qc_v)
     error = (tr_unitary.data - v_true) 
     trace_norm = np.linalg.norm(error)  #trace norm
+    print(f'Error (trace norm) between transpiled circuit unitary and target unitary: {trace_norm:e}')
 
     return tr_qc_v, v_true, trace_norm
 
@@ -227,6 +228,7 @@ def transpile_circuit_qite_adap(n_qubits: int,
     tr_unitary = Operator(tr_qc_u)
     error = (tr_unitary.data - u_true)
     trace_norm = np.linalg.norm(error) #trace norm
+    print(f'Error (trace norm) between transpiled circuit unitary and target unitary: {trace_norm:e}')
     #print(Operator(u_true).equiv(Operator(tr_qc_u)))
 
     return tr_qc_u, u_true, trace_norm

@@ -6,6 +6,10 @@ from qrisp.operators import X, Y, Z
 
 import numpy as np
 import sympy as sp
+import scipy.sparse as spy
+
+
+from qiskit.quantum_info import SparsePauliOp,Pauli
 
 
 def cyclic_range(start: int, stop: int, n: int) -> List[int]:
@@ -118,17 +122,37 @@ def build_acq_circuit_qrisp(
     if U_0 is not None:
         U_0(qv)
 
+    u_true = np.eye(2**n_qubits)
+
     for step in range(steps):
+        A_sum = 0
+        #A_sum_qrisp = 0
         t_step = float(times[step])
         for k in range(len(PD)):
-            support = support_of_Ak(k, D, T, n_qubits)
-            PD_k_reduced = ["".join(pstr[i] for i in support) for pstr in PD[k]]
-            A_k = _qrisp_generator_from_coeffs(PD_k_reduced, a[step][k, :], support, atol)
-            if A_k == 0:
-                continue
-            A_k.trotterization(method=trotter_method)(qv, t_step/alpha, trotter_steps)
+            A_k = SparsePauliOp(PD[k],a[step][k, :])
+            A_sum += A_k
 
-    return qv.qs.compile()
+            support = support_of_Ak(k, D, T, n_qubits)
+            PD_k_reduced = ["".join(pstr[q] for q in support) for pstr in PD[k]]
+
+            support_qrisp = [n_qubits-1-i for i in support[::-1]]
+            A_k_reduced = _qrisp_generator_from_coeffs(PD_k_reduced, a[step][k, :], support_qrisp, atol)
+            A_k_reduced.trotterization(method=trotter_method)(qv, t_step/alpha, trotter_steps)
+            #A_sum_qrisp += A_k_reduced
+
+        #A_sum_qrisp.trotterization(method=trotter_method)(qv, t_step/alpha, trotter_steps)
+        A_sum = A_sum.simplify()
+        u_true = spy.linalg.expm(-1j * A_sum.to_matrix()*times[step]) @ u_true
+
+
+    
+    # Calculate error using trace norm
+    qc_unitary = qv.qs.get_unitary()
+    error = (qc_unitary - u_true)
+    trace_norm = np.linalg.norm(error) #trace norm
+    print(f"Trace norm error between Qrisp circuit unitary and target ACQ unitary: {trace_norm:e}")
+    qc = qv.qs.compile()
+    return qc
 
 
 def run_QITE(H, U_0, exp_H, s_values, steps, method='GC', use_statevectors=False):
