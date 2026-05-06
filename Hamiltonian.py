@@ -326,9 +326,9 @@ def Heisenberg(J: float,
     ###################################################
     #This is a check to see if the trotterization is the same as the original Hamiltonian
     if sparse:
-        difH=sp.linalg.norm((H-sum(H_T)),ord=2)
+        difH=sp.linalg.norm((H-sum(H_T)),ord=1)
     else:
-        difH=np.linalg.norm((H-sum(H_T)),ord=2)
+        difH=np.linalg.norm((H-sum(H_T)),ord=1)
     print('Heisenberg model with OBC and Hamiltonian pieces of locality T=2')
     if difH<1e-14:
         print('Succesfull Troterization')
@@ -336,7 +336,7 @@ def Heisenberg(J: float,
     else:
         print('Failed Trotterization, you can still use the generated full Hamiltonian')
 
-    H_trot=TrotterHamiltonian(T,N_k,R,H_T,index)
+    H_trot=TrotterHamiltonian(T,N_k,R,H_T,index[0:-1])
 
     return H,H_trot
 
