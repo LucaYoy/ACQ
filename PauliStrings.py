@@ -70,7 +70,7 @@ def general(H_trot,
                     s[ind]=qi[k]
                 pstr=''.join(s)
                 PD[j][i]=sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse))
-                PD_str=pstr
+                PD_str[j][i]=pstr
                 i=i+1
     if sparse:
         PD = [[sp.csc_matrix(val) for val in row] for row in PD]
@@ -228,11 +228,14 @@ def general_OBC(H_trot,
                 s=["I"]*n_qubits
                 for k in range(D):
                     ind=(H_trot.indk[j]+k-disp) #now we dont wrap around the chain
-                    if ind>=0 & ind<n_qubits:   #we only keep the indices that stay inside the chain
+                    #if j==4:
+                    #    print("ind",ind,"D_i=",k,"str=",qi[k])
+                    if ind>=0 and ind<(n_qubits):   #we only keep the indices that stay inside the chain
                         s[ind]=qi[k]
+                print(s)
                 pstr=''.join(s)
                 PD[j][i]=sp.csc_matrix(Pauli(pstr).to_matrix(sparse=sparse))
-                PD_str=pstr
+                PD_str[j][i]=pstr
                 i=i+1
     if sparse:
         PD = [[sp.csc_matrix(val) for val in row] for row in PD]
