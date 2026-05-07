@@ -14,7 +14,8 @@ def QITE(n_qubits: int,
          N: int, 
          dt: float, 
          vervose: bool = False, 
-         method: str = 'LU') -> Tuple[np.ndarray, sp.lil_matrix, np.ndarray]:
+         method: str = 'LU',
+         OBC: bool = False) -> Tuple[np.ndarray, sp.lil_matrix, np.ndarray]:
     """
     Quantum Imaginary Time Evolution (QITE) algorithm for simulating ground state preparation.
     
@@ -48,12 +49,20 @@ def QITE(n_qubits: int,
     """
 
     #checking whick method to obtain pauli strings is used
-    if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
-        #print("Using Real Pauli Strings") 
-        num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
+    if OBC:
+        if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+            #print("Using Real Pauli Strings") 
+            num_paulis,PD,fail = pauli_strings.real_OBC(H_trot,D,n_qubits)
+        else:
+            #print("Using General Pauli Strings")
+            num_paulis,PD,fail = pauli_strings.general_OBC(H_trot,D,n_qubits)
     else:
-        #print("Using General Pauli Strings")
-        num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
+        if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+            #print("Using Real Pauli Strings") 
+            num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
+        else:
+            #print("Using General Pauli Strings")
+            num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
 
     psi_out=sp.lil_matrix((2**n_qubits,N+1),dtype=complex)
     psi_out[:,0]=psi_0.copy()
@@ -187,7 +196,8 @@ def ACQ(n_qubits: int,
         dt: float, 
         failstop: bool = True, 
         expm: bool = True, 
-        methodLS: str = 'LU') -> Tuple[np.ndarray, sp.lil_matrix, List[int], List[float], List[np.ndarray]]:
+        methodLS: str = 'LU',
+        OBC: bool = False) -> Tuple[np.ndarray, sp.lil_matrix, List[int], List[float], List[np.ndarray]]:
     """
     Adaptive QITE (ACQ) algorithm for efficient quantum imaginary time evolution.
     
@@ -227,12 +237,20 @@ def ACQ(n_qubits: int,
         - Uses either real or general Pauli string decomposition based on whether H and psi_0 are real.
     """
     #checking whick method to obtain pauli strings is used
-    if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
-        print("Using Real Pauli Strings") 
-        num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
+    if OBC:
+        if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+            #print("Using Real Pauli Strings") 
+            num_paulis,PD,fail = pauli_strings.real_OBC(H_trot,D,n_qubits)
+        else:
+            #print("Using General Pauli Strings")
+            num_paulis,PD,fail = pauli_strings.general_OBC(H_trot,D,n_qubits)
     else:
-        print("Using General Pauli Strings")
-        num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
+        if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+            #print("Using Real Pauli Strings") 
+            num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
+        else:
+            #print("Using General Pauli Strings")
+            num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
     
     if fail:
         print("You need D>=T. Not running")
