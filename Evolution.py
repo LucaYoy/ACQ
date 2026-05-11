@@ -50,12 +50,15 @@ def QITE(n_qubits: int,
 
     #checking whick method to obtain pauli strings is used
     if OBC:
-        if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
-            #print("Using Real Pauli Strings") 
-            num_paulis,PD,fail = pauli_strings.real_OBC(H_trot,D,n_qubits)
+        if D==N:
+            num_paulis,PD,fail = pauli_strings.OBC_DN(H_trot,D,n_qubits)
         else:
-            #print("Using General Pauli Strings")
-            num_paulis,PD,fail = pauli_strings.general_OBC(H_trot,D,n_qubits)
+            if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+                #print("Using Real Pauli Strings") 
+                num_paulis,PD,fail = pauli_strings.real_OBC(H_trot,D,n_qubits)
+            else:
+                #print("Using General Pauli Strings")
+                num_paulis,PD,fail = pauli_strings.general_OBC(H_trot,D,n_qubits)
     else:
         if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
             #print("Using Real Pauli Strings") 
@@ -238,12 +241,15 @@ def ACQ(n_qubits: int,
     """
     #checking whick method to obtain pauli strings is used
     if OBC:
-        if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
-            #print("Using Real Pauli Strings") 
-            num_paulis,PD,fail = pauli_strings.real_OBC(H_trot,D,n_qubits)
+        if D==N:
+            num_paulis,PD,fail = pauli_strings.OBC_DN(H_trot,D,n_qubits)
         else:
-            #print("Using General Pauli Strings")
-            num_paulis,PD,fail = pauli_strings.general_OBC(H_trot,D,n_qubits)
+            if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+                #print("Using Real Pauli Strings") 
+                num_paulis,PD,fail = pauli_strings.real_OBC(H_trot,D,n_qubits)
+            else:
+                #print("Using General Pauli Strings")
+                num_paulis,PD,fail = pauli_strings.general_OBC(H_trot,D,n_qubits)
     else:
         if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
             #print("Using Real Pauli Strings") 
