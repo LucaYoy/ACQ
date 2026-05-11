@@ -14,7 +14,8 @@ def QITE(n_qubits: int,
          N: int, 
          dt: float, 
          vervose: bool = False, 
-         method: str = 'LU') -> Tuple[np.ndarray, sp.lil_matrix, np.ndarray]:
+         method: str = 'LU',
+         OBC: bool = False) -> Tuple[np.ndarray, sp.lil_matrix, np.ndarray]:
     """
     Quantum Imaginary Time Evolution (QITE) algorithm for simulating ground state preparation.
     
@@ -48,12 +49,23 @@ def QITE(n_qubits: int,
     """
 
     #checking whick method to obtain pauli strings is used
-    if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
-        #print("Using Real Pauli Strings") 
-        num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
+    if OBC:
+        if D==n_qubits:
+            num_paulis,PD,fail = pauli_strings.OBC_DN(H_trot,D,n_qubits)
+        else:
+            if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+                #print("Using Real Pauli Strings") 
+                num_paulis,PD,fail = pauli_strings.real_OBC(H_trot,D,n_qubits)
+            else:
+                #print("Using General Pauli Strings")
+                num_paulis,PD,fail = pauli_strings.general_OBC(H_trot,D,n_qubits)
     else:
-        #print("Using General Pauli Strings")
-        num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
+        if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+            #print("Using Real Pauli Strings") 
+            num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
+        else:
+            #print("Using General Pauli Strings")
+            num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
 
     psi_out=sp.lil_matrix((2**n_qubits,N+1),dtype=complex)
     psi_out[:,0]=psi_0.copy()
@@ -93,7 +105,7 @@ def QITE(n_qubits: int,
                 a[i,l]=np.real(invS_ex@b).flatten()
             if method=='LU':
                 ep=1e-10
-                a[i,l]= np.real(scipy.linalg.solve(S+S.T+ep*np.eye(num_paulis),b,assume_a='hermitian'))
+                a[i,l]=np.real(scipy.linalg.solve(S+S.T+ep*np.eye(num_paulis),b,assume_a='hermitian'))
             
             #construction of the evolution operator (steps 5 and 6 in the algorithm)
             operator=sp.csc_matrix((2**n_qubits,2**n_qubits),dtype=complex)
@@ -187,7 +199,8 @@ def ACQ(n_qubits: int,
         dt: float, 
         failstop: bool = True, 
         expm: bool = True, 
-        methodLS: str = 'LU') -> Tuple[np.ndarray, sp.lil_matrix, List[int], List[float], List[np.ndarray]]:
+        methodLS: str = 'LU',
+        OBC: bool = False) -> Tuple[np.ndarray, sp.lil_matrix, List[int], List[float], List[np.ndarray]]:
     """
     Adaptive QITE (ACQ) algorithm for efficient quantum imaginary time evolution.
     
@@ -227,12 +240,23 @@ def ACQ(n_qubits: int,
         - Uses either real or general Pauli string decomposition based on whether H and psi_0 are real.
     """
     #checking whick method to obtain pauli strings is used
-    if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
-        print("Using Real Pauli Strings") 
-        num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
+    if OBC:
+        if D==n_qubits:
+            num_paulis,PD,fail = pauli_strings.OBC_DN(H_trot,D,n_qubits)
+        else:
+            if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+                #print("Using Real Pauli Strings") 
+                num_paulis,PD,fail = pauli_strings.real_OBC(H_trot,D,n_qubits)
+            else:
+                #print("Using General Pauli Strings")
+                num_paulis,PD,fail = pauli_strings.general_OBC(H_trot,D,n_qubits)
     else:
-        print("Using General Pauli Strings")
-        num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
+        if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+            #print("Using Real Pauli Strings") 
+            num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
+        else:
+            #print("Using General Pauli Strings")
+            num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
     
     if fail:
         print("You need D>=T. Not running")
@@ -279,6 +303,204 @@ def ACQ(n_qubits: int,
                     psi_test = sp.linalg.expm_multiply(-1j*An*t,psi_prev)
                 else:
                     psi_test = UN(t)@psi_prev
+
+                #test energies
+                E_test = np.real((psi_test.conj().T@H@psi_test).trace())
+                if E_test<E_prev:
+                    fallo = False     
+
+            if indx[-1] == steps:
+                #energy increased even after recalculation
+                fallo = True
+                if failstop:
+                    a.pop() #removing last element as no evolution was done
+                    print("Energy doubly increased, stopping criteria activated at step",steps+1)
+                    return E,psi_QITE,indx,times,a
+            
+            times.append(t-dt) #storing time until last successful evolution
+
+        return E,psi_QITE,indx,times,a
+
+
+def compute_fuse_U_QC(n_qubits: int, 
+                   H_trot: TrotterHamiltonian, 
+                   num_paulis: int, 
+                   PD: List, 
+                   psi_QITE: sp.spmatrix, 
+                   dt: float, 
+                   method: str = 'LU') -> Tuple[sp.csc_matrix, Callable[[float], sp.csc_matrix], np.ndarray]:
+    """
+    In this function the unitaries V(t) are computed with the Trotterized form intended to run on 
+    a QC. To simplify the implementation the state is only updated after the full recalculation, it
+    is not update after each piece of the Hamiltonian recalculation. This method would cut on mid-
+    circuit measurements, because some Pauli Strings between pieces h_k are not unique.
+
+    Args:
+        n_qubits: Number of qubits in the quantum system.
+        H_trot: Trotterized Hamiltonian object (TrotterHamiltonian) containing decomposed terms (must have Nk and Hk attributes).
+        num_paulis: Number of Pauli strings in the operator basis.
+        PD: List of Pauli decomposition matrices for each Trotter term.
+            Shape: [num_trotter_terms][num_paulis] where each element is a sparse matrix.
+        psi_QITE: Current quantum state as a sparse column vector.
+        dt: Time step size for the evolution.
+        method: Method for solving linear system ('LU', 'lstsq', or 'pinv'). Default is 'LU'.
+    
+    Returns:
+        A tuple containing:
+            - A_sum: The total anti-Hermitian generator (sum of all operator terms).
+            - UN: A lambda function that takes time t and returns exp(-i*A_sum*t) as a sparse matrix.
+            - a: Array of coefficients for Pauli operators for each Trotter term.
+              Shape: (num_trotter_terms, num_paulis).
+    """
+    a=np.zeros((H_trot.Nk,num_paulis),dtype=complex)
+    for l in range(H_trot.Nk):
+        X=sp.lil_matrix((2**n_qubits,num_paulis),dtype=complex)
+        b=np.zeros((num_paulis),dtype=complex)
+        aux=np.real((psi_QITE.getH()@sp.linalg.expm(-2*H_trot.Hk[l]*dt)@psi_QITE).trace())
+        c=cmath.sqrt(aux)
+        expHdt=sp.linalg.expm(-H_trot.Hk[l]*dt)
+        for j in range(num_paulis):
+            b[j] = -1j*(psi_QITE.getH()@(expHdt@PD[l][j]-PD[l][j]@expHdt)@psi_QITE).trace()/c/dt
+            X[:,j]=PD[l][j]@psi_QITE
+        S=(X.getH()@X).todense()
+        
+        if method=='lstsq':
+            #least square solution of equation (S+S^T)*a = b (step 4 in algorithm)
+            v,res,rank,s=scipy.linalg.lstsq(S+S.T,b,lapack_driver='gelsd')
+            a[l]=v
+            #print(res,rank)
+        if method=='pinv':
+            #pseudo-inverse method
+            invS_ex=scipy.linalg.pinvh(S+S.transpose())
+            #print(np.linalg.norm(invS_ex*(S+S.T)-np.eye(num_paulis)))
+            a[l]=np.real(invS_ex@b).flatten()
+        if method=='LU':
+            ep=1e-10
+            a[l]=np.real(scipy.linalg.solve(S+S.T+ep*np.eye(num_paulis),b,assume_a='hermitian'))
+        
+        #psi_QITE = V@psi_QITE #state is not updated inside the recalculation
+        
+    return a
+
+        
+def ACQ_QC(n_qubits: int, 
+        H: sp.spmatrix, 
+        H_trot: TrotterHamiltonian, 
+        D: int, 
+        psi_0: sp.spmatrix, 
+        N: int, 
+        dt: float, 
+        failstop: bool = True, 
+        expm: bool = True, 
+        methodLS: str = 'LU',
+        OBC: bool = False) -> Tuple[np.ndarray, sp.lil_matrix, List[int], List[float], List[np.ndarray]]:
+    """
+    Adaptive QITE (ACQ) algorithm for efficient quantum imaginary time evolution.
+    
+    ACQ improves upon standard QITE by reusing the same unitary operator across multiple
+    time steps, reducing classical overhead. The unitary is recomputed only when
+    the energy begins to increase, implementing an adaptive line search strategy.
+    
+    Args:
+        n_qubits: Number of qubits in the quantum system.
+        H: Full Hamiltonian operator as a sparse matrix.
+        H_trot: Trotterized Hamiltonian object (TrotterHamiltonian) containing decomposed terms (must have Nk and Hk attributes).
+        D: Dimension parameter controlling the Pauli string basis size.
+        psi_0: Initial quantum state as a sparse column vector.
+        N: Maximum number of time steps for the evolution.
+        dt: Time step
+        failstop: If True, stops evolution when energy increases even after unitary recomputation.
+                  If False, continues attempting evolution. Default is True.
+        expm: If True, uses sparse matrix exponential multiplication (expm_multiply).
+              If False, uses precomputed unitary function. Default is True.
+        methodLS: Method for solving linear system in unitary construction ('LU', 'lstsq', or 'pinv').
+                  Default is 'LU'.
+    
+    Returns:
+        A tuple containing:
+            - E: Array of energies at each successful time step.
+            - psi_QITE: Sparse matrix where each column is the state at a given time step.
+            - indx: List of step indices where the unitary operator was recomputed.
+            - times: List of evolution times achieved with each unitary before recomputation.
+            - a: List of coefficient arrays, one for each unitary recomputation.
+              Each array has shape (num_trotter_terms, num_paulis).
+    
+    Notes:
+        - The algorithm implements an adaptive line search: it reuses the same unitary U(t)
+          for as long as the energy decreases, incrementing t by dt at each step.
+        - When energy increases, the unitary is recomputed at the current state.
+        - If energy increases even after recomputation and failstop=True, evolution terminates.
+        - Uses either real or general Pauli string decomposition based on whether H and psi_0 are real.
+    """
+    #checking whick method to obtain pauli strings is used
+    if OBC:
+        if D==N:
+            num_paulis,PD,fail = pauli_strings.OBC_DN(H_trot,D,n_qubits)
+        else:
+            if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+                #print("Using Real Pauli Strings") 
+                num_paulis,PD,fail = pauli_strings.real_OBC(H_trot,D,n_qubits)
+            else:
+                #print("Using General Pauli Strings")
+                num_paulis,PD,fail = pauli_strings.general_OBC(H_trot,D,n_qubits)
+    else:
+        if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
+            #print("Using Real Pauli Strings") 
+            num_paulis,PD,fail = pauli_strings.real(H_trot,D,n_qubits)
+        else:
+            #print("Using General Pauli Strings")
+            num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
+
+    def pauli_exp(theta, P):
+        I = sp.eye(P.shape[0], dtype=complex,format="csc")
+        return np.cos(theta)*I - 1j*np.sin(theta)*P 
+
+    def Vn(H_trot,num_paulis,n_qubits,a,t):
+        U=sp.eye(2**n_qubits,dtype=complex,format="csc")
+        for l in range(H_trot.Nk):
+            for j in range(num_paulis):
+                U = pauli_exp(a[l,j]*t,PD[l][j])@U
+        return U
+
+    if fail:
+        print("You need D>=T. Not running")
+    else:
+        psi_QITE=sp.lil_matrix((2**n_qubits,N+1),dtype=complex)
+        psi_QITE[:,0]=psi_0.copy()
+        
+        E=np.zeros(N+1)
+        E[0]=np.real((psi_QITE[:,0].getH()@H@psi_QITE[:,0]).trace())
+        E_prev = E[0]        
+        
+        indx = []
+        times = []
+        a = []
+        steps = 0
+        fallo = False
+        while steps<N: 
+
+            # recomputing U if energy increased
+            if not fallo:
+                psi_prev = psi_QITE[:,steps]
+                t = dt #times at which we probe the energies, dt is hyperparam of line search
+                print("Computing U at step",steps)
+                a_piece = compute_fuse_U_QC(n_qubits,H_trot,num_paulis,PD,psi_prev,dt,method=methodLS)
+                indx.append(steps)
+                a.append(a_piece)
+                psi_test = Vn(H_trot,num_paulis,n_qubits,a_piece,t)@psi_prev
+                E_test = np.real((psi_test.conj().T@H@psi_test).trace())
+            
+            # test if energy increased and if not evolve with the same U for more time 
+            while (E_test<E_prev or fallo) and steps<N:
+                
+                #increase one step
+                steps += 1
+                t += dt #hyperparam
+                psi_QITE[:,steps]=psi_test
+                E[steps]=E_test
+                E_prev = E_test
+                
+                psi_test = Vn(H_trot,num_paulis,n_qubits,a_piece,t)@psi_prev
 
                 #test energies
                 E_test = np.real((psi_test.conj().T@H@psi_test).trace())
