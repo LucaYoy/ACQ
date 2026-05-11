@@ -452,7 +452,7 @@ def ACQ_QC(n_qubits: int,
             num_paulis,PD,fail = pauli_strings.general(H_trot,D,n_qubits)
 
     def pauli_exp(theta, P):
-        I = np.eye(P.shape[0], dtype=complex)
+        I = sp.eye(P.shape[0], dtype=complex,format="csc")
         return np.cos(theta)*I - 1j*np.sin(theta)*P 
 
     def Vn(H_trot,num_paulis,n_qubits,a,t):
