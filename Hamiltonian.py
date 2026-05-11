@@ -127,9 +127,9 @@ def TFIM(J: float,
     ###################################################
     #This is a check to see if the trotterization is the same as the original Hamiltonian
     if sparse:
-        difH=sp.linalg.norm((H-sum(H_T)),ord=2)
+        difH=sp.linalg.norm((H-sum(H_T)),ord=1)
     else:
-        difH=np.linalg.norm((H-sum(H_T)),ord=2)
+        difH=np.linalg.norm((H-sum(H_T)),ord=1)
     if difH<1e-14:
         if verbose:
             print('Succesfull Troterization')
