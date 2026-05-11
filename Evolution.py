@@ -50,7 +50,7 @@ def QITE(n_qubits: int,
 
     #checking whick method to obtain pauli strings is used
     if OBC:
-        if D==N:
+        if D==n_qubits:
             num_paulis,PD,fail = pauli_strings.OBC_DN(H_trot,D,n_qubits)
         else:
             if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
@@ -241,7 +241,7 @@ def ACQ(n_qubits: int,
     """
     #checking whick method to obtain pauli strings is used
     if OBC:
-        if D==N:
+        if D==n_qubits:
             num_paulis,PD,fail = pauli_strings.OBC_DN(H_trot,D,n_qubits)
         else:
             if np.isreal(H.data).all() and np.isreal(psi_0.data).all():
