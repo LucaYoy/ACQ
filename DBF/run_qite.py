@@ -142,7 +142,11 @@ def build_acq_circuit_qrisp(
             PD_k_reduced = ["".join(pstr[q] for q in support) for pstr in PD[k]]
 
             A_k_reduced = _qrisp_generator_from_coeffs(PD_k_reduced, a[step][k, :], support, atol)
-            A_k_reduced.trotterization(method=trotter_method)(qv, t_step/alpha, trotter_steps)
+            
+            if A_k_reduced != 0: 
+                A_k_reduced.trotterization(method=trotter_method)(qv, t_step/alpha, trotter_steps)
+            else:
+                continue
             #A_sum_qrisp += A_k_reduced
 
         A_sum = A_sum.simplify()
