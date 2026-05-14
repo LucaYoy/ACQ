@@ -279,7 +279,7 @@ def Heisenberg(J: float,
     XX=[]
     YY=[]
     ZZ=[]
-    for i in range(n_qubits-1): #open
+    for i in range(n_qubits-1): #open boundary
         # Hamiltonian
         sxx=["I"]*n_qubits
         syy=["I"]*n_qubits
@@ -323,7 +323,6 @@ def Heisenberg(J: float,
         else:
             H_T.append(h_k)
     N_k=N_k-1 #open boundary, remove last term
-    index = index[0:-1]
     ###################################################
     #This is a check to see if the trotterization is the same as the original Hamiltonian
     if sparse:
@@ -333,7 +332,7 @@ def Heisenberg(J: float,
     print('Heisenberg model with OBC and Hamiltonian pieces of locality T=2')
     if difH<1e-14:
         print('Succesfull Troterization')
-        print("The Trotterization consists of",N_k,"terms with the starting qubit of each piece at",index)
+        print("The Trotterization consists of",N_k,"terms with the starting qubit of each piece at",index[0:-1])
     else:
         print('Failed Trotterization, you can still use the generated full Hamiltonian')
 
