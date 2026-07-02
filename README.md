@@ -67,7 +67,9 @@ print("Final energy:", E[np.nonzero(E)].tolist()[-1])
 
 ## Citing ACQ
 
-If you use this code, please cite [future publication reference].
+This repository supports the findings presented in:
+ 
+ Acevedo, A., Almudéver, C. G., Garcia-March, M. A., Gómez-Lurbe, R., Ion, L., Lal Bera, M., … Anglés-Castillo, A. (2026). *Adaptive time compressed QITE (ACQ) and its geometrical interpretation*. Quantum Science and Technology, 11(3), 035009. doi:[10.1088/2058-9565/ae7828](https://doi.org/10.1088/2058-9565/ae7828)
 
 ## Acknowledgments
 
